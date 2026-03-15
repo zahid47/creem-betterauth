@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import Database from "better-sqlite3";
 import { creem } from "@creem_io/better-auth";
+import { organization } from "better-auth/plugins";
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
@@ -12,6 +13,7 @@ export const auth = betterAuth({
     enabled: true,
   },
   plugins: [
+    organization(),
     creem({
       apiKey: process.env.CREEM_API_KEY!,
       webhookSecret: process.env.CREEM_WEBHOOK_SECRET,

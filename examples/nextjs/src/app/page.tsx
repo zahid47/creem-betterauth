@@ -107,6 +107,7 @@ export default function Home() {
 
 function Dashboard() {
   const { data: session } = authClient.useSession();
+  const { data: activeOrg } = authClient.useActiveOrganization();
   const [accessStatus, setAccessStatus] = useState<{
     hasAccessGranted: boolean | undefined;
     message?: string;
@@ -115,6 +116,8 @@ function Dashboard() {
   const [transactions, setTransactions] = useState<
     { id: string; amount: number; currency: string; type: string }[] | null
   >(null);
+  const [orgName, setOrgName] = useState("");
+  const [orgs, setOrgs] = useState<{ id: string; name: string; slug: string }[] | null>(null);
 
   const checkAccess = async () => {
     const { data } = await authClient.creem.hasAccessGranted();
@@ -262,6 +265,75 @@ function Dashboard() {
             </ul>
           )}
         </div>
+      )}
+
+      <hr />
+      <h2>Organizations</h2>
+      <p>
+        Active: <strong>{activeOrg ? activeOrg.name : "None"}</strong>
+        {activeOrg && (
+          <button
+            onClick={() => authClient.organization.setActive({ organizationId: null })}
+            style={{ marginLeft: 8, padding: "4px 8px" }}
+          >
+            Clear Active
+          </button>
+        )}
+      </p>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+        <input
+          type="text"
+          placeholder="Org name"
+          value={orgName}
+          onChange={(e) => setOrgName(e.target.value)}
+          style={{ padding: 8 }}
+        />
+        <button
+          onClick={async () => {
+            if (!orgName.trim()) return;
+            const slug = orgName.trim().toLowerCase().replace(/\s+/g, "-");
+            const { error } = await authClient.organization.create({ name: orgName.trim(), slug });
+            if (error) {
+              alert(error.message ?? "Failed to create org");
+            } else {
+              setOrgName("");
+            }
+          }}
+          style={{ padding: "8px 16px" }}
+        >
+          Create Org
+        </button>
+      </div>
+      <button
+        onClick={async () => {
+          const { data, error } = await authClient.organization.list();
+          if (error) {
+            alert(error.message ?? "Failed to list orgs");
+            return;
+          }
+          if (data) setOrgs(data as { id: string; name: string; slug: string }[]);
+        }}
+        style={{ padding: "8px 16px", marginBottom: 8 }}
+      >
+        List My Orgs
+      </button>
+      {orgs !== null && (
+        <ul>
+          {orgs.length === 0 && <li style={{ color: "#888" }}>No organizations yet.</li>}
+          {orgs.map((org) => (
+            <li key={org.id}>
+              {org.name}{" "}
+              {activeOrg?.id !== org.id && (
+                <button
+                  onClick={() => authClient.organization.setActive({ organizationId: org.id })}
+                  style={{ padding: "2px 8px" }}
+                >
+                  Set Active
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
