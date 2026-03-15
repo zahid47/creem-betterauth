@@ -238,7 +238,10 @@ describe("updateSubscriptionFromEvent (via subscription hooks)", () => {
     expect(adapter.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         model: "creem_subscription",
-        where: [{ field: "creemCustomerId", value: "cust_test_123" }, { field: "organizationId", value: null }],
+        where: [
+          { field: "creemCustomerId", value: "cust_test_123" },
+          { field: "organizationId", value: null },
+        ],
       }),
     );
   });
@@ -535,7 +538,7 @@ describe("onCheckoutCompleted - organization support", () => {
         model: "creem_subscription",
         data: expect.objectContaining({
           referenceId: "user_123",
-          organizationId: undefined,
+          organizationId: null,
         }),
       }),
     );

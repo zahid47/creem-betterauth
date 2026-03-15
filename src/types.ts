@@ -102,7 +102,7 @@ export interface SubscriptionRecord {
   id: string;
   productId: string;
   referenceId: string;
-  organizationId?: string;
+  organizationId?: string | null;
   creemCustomerId?: string;
   creemSubscriptionId?: string;
   creemOrderId?: string;

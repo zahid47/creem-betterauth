@@ -1011,7 +1011,10 @@ describe("Has access granted - organization support", () => {
     await handler(ctx);
     expect(adapter.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: [{ field: "referenceId", value: "user_123" }, { field: "organizationId", value: null }],
+        where: [
+          { field: "referenceId", value: "user_123" },
+          { field: "organizationId", value: null },
+        ],
       }),
     );
   });
@@ -1022,7 +1025,7 @@ describe("Cancel subscription - organization support", () => {
     vi.clearAllMocks();
   });
 
-  it("queries by organizationId when org in session", async () => {
+  it("queries by organizationId when org is active in session", async () => {
     const adapter = createMockAdapter();
     adapter.findMany.mockResolvedValue([mockOrgDbSubscription]);
     const creem = createMockCreem() as any;

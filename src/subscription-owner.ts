@@ -18,7 +18,10 @@ export interface SubscriptionOwner {
  * `getSessionFromCtx` returns `{ session: { activeOrganizationId, ... }, user: { ... } }`.
  * We destructure so callers just pass the result directly.
  */
-export function resolveSubscriptionOwner({ session, user }: {
+export function resolveSubscriptionOwner({
+  session,
+  user,
+}: {
   session?: Record<string, any>;
   user: { id: string };
 }): SubscriptionOwner {
@@ -34,7 +37,9 @@ export function resolveSubscriptionOwner({ session, user }: {
  * - If an org is present, filter by `organizationId`.
  * - Otherwise, filter by `referenceId` (userId) and exclude org-scoped subscriptions.
  */
-export function getSubscriptionQueryFilter(owner: SubscriptionOwner): Array<{ field: string; value: string | null }> {
+export function getSubscriptionQueryFilter(
+  owner: SubscriptionOwner,
+): Array<{ field: string; value: string | null }> {
   if (owner.organizationId) {
     return [{ field: "organizationId", value: owner.organizationId }];
   }
@@ -42,4 +47,8 @@ export function getSubscriptionQueryFilter(owner: SubscriptionOwner): Array<{ fi
     { field: "referenceId", value: owner.userId },
     { field: "organizationId", value: null },
   ];
+}
+
+export function isPersonalSubscriptionRecord(record: { organizationId?: string | null }): boolean {
+  return record.organizationId == null;
 }

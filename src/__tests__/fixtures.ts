@@ -369,6 +369,7 @@ export const mockDbSubscription = {
   id: "db_sub_001",
   productId: "prod_test_456",
   referenceId: "user_123",
+  organizationId: null,
   creemCustomerId: "cust_test_123",
   creemSubscriptionId: "sub_test_789",
   creemOrderId: "ord_test_101",

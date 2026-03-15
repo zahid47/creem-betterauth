@@ -43,6 +43,25 @@ export function createCreemClient(config: CreemServerConfig): Creem {
   return new Creem({ apiKey: config.apiKey, serverURL });
 }
 
+function filterSubscriptionsByOwner<
+  T extends {
+    referenceId?: string;
+    organizationId?: string | null;
+    status?: string;
+    creemSubscriptionId?: string;
+    periodEnd?: string | Date;
+    productId?: string;
+  },
+>(subscriptions: T[], options: { userId: string; organizationId?: string }): T[] {
+  if (options.organizationId) {
+    return subscriptions.filter((sub) => sub.organizationId === options.organizationId);
+  }
+
+  return subscriptions.filter(
+    (sub) => sub.referenceId === options.userId && sub.organizationId == null,
+  );
+}
+
 /**
  * Check if a subscription status indicates active access.
  *
@@ -509,15 +528,14 @@ export async function checkSubscriptionAccess(
   // `hasAccessGranted` Better Auth endpoint which uses the adapter correctly.
   if (options.database && options.userId) {
     try {
-      const filterField = options.organizationId ? "organizationId" : "referenceId";
-      const filterValue = options.organizationId ?? options.userId;
-
       const subscriptions = await options.database
         .select()
         .from("creem_subscription")
-        .where(filterField, "=", filterValue);
+        .where("referenceId", "=", options.userId);
 
-      const activeSubscription = subscriptions.find(
+      const ownedSubscriptions = filterSubscriptionsByOwner(subscriptions, options);
+
+      const activeSubscription = ownedSubscriptions.find(
         (sub: any) => sub.status === "active" || sub.status === "trialing" || sub.status === "paid",
       );
 
@@ -592,15 +610,14 @@ export async function getActiveSubscriptions(
   // TODO: Same raw query builder caveat as checkSubscriptionAccess above.
   if (options.database && options.userId) {
     try {
-      const filterField = options.organizationId ? "organizationId" : "referenceId";
-      const filterValue = options.organizationId ?? options.userId;
-
       const subscriptions = await options.database
         .select()
         .from("creem_subscription")
-        .where(filterField, "=", filterValue);
+        .where("referenceId", "=", options.userId);
 
-      return subscriptions
+      const ownedSubscriptions = filterSubscriptionsByOwner(subscriptions, options);
+
+      return ownedSubscriptions
         .filter(
           (sub: any) =>
             sub.status === "active" || sub.status === "trialing" || sub.status === "paid",

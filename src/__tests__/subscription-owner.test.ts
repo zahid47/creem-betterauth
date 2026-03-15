@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   resolveSubscriptionOwner,
   getSubscriptionQueryFilter,
+  isPersonalSubscriptionRecord,
 } from "../subscription-owner.js";
 
 describe("resolveSubscriptionOwner", () => {
@@ -52,5 +53,19 @@ describe("getSubscriptionQueryFilter", () => {
       { field: "referenceId", value: "user_123" },
       { field: "organizationId", value: null },
     ]);
+  });
+});
+
+describe("isPersonalSubscriptionRecord", () => {
+  it("returns true when organizationId is null", () => {
+    expect(isPersonalSubscriptionRecord({ organizationId: null })).toBe(true);
+  });
+
+  it("returns true when organizationId is undefined", () => {
+    expect(isPersonalSubscriptionRecord({})).toBe(true);
+  });
+
+  it("returns false when organizationId is set", () => {
+    expect(isPersonalSubscriptionRecord({ organizationId: "org_456" })).toBe(false);
   });
 });

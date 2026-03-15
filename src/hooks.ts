@@ -92,7 +92,7 @@ export async function onCheckoutCompleted(
         const subscriptionUpdate = {
           productId: productId || "",
           referenceId,
-          organizationId,
+          organizationId: organizationId ?? null,
           creemCustomerId: customerId,
           creemSubscriptionId: subscriptionData.id,
           creemOrderId: orderId,
