@@ -13,6 +13,10 @@ export const subscriptions = {
         type: "string",
         required: true,
       },
+      organizationId: {
+        type: "string",
+        required: false,
+      },
       creemCustomerId: {
         type: "string",
         required: false,

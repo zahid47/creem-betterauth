@@ -44,8 +44,9 @@ export async function onCheckoutCompleted(
       return;
     }
 
-    // Extract referenceId from metadata
+    // Extract referenceId and organizationId from metadata
     const referenceId = checkout.metadata?.referenceId as string;
+    const organizationId = checkout.metadata?.organizationId as string | undefined;
 
     if (!referenceId) {
       logger.warn("[creem] No referenceId in checkout.completed event");
@@ -53,7 +54,7 @@ export async function onCheckoutCompleted(
     }
 
     logger.debug(
-      `[creem] checkout.completed: customerId=${customerId}, referenceId=${referenceId}, hasSubscription=${!!checkout.subscription}`,
+      `[creem] checkout.completed: customerId=${customerId}, referenceId=${referenceId}, organizationId=${organizationId ?? "none"}, hasSubscription=${!!checkout.subscription}`,
     );
 
     // Update user with creemCustomerId (if user exists)
@@ -91,6 +92,7 @@ export async function onCheckoutCompleted(
         const subscriptionUpdate = {
           productId: productId || "",
           referenceId,
+          organizationId,
           creemCustomerId: customerId,
           creemSubscriptionId: subscriptionData.id,
           creemOrderId: orderId,

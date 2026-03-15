@@ -18,6 +18,7 @@ import {
   defaultOptions,
   optionsNoPersist,
   mockCheckoutCompletedEvent,
+  mockOrgCheckoutCompletedEvent,
   mockSubscriptionActiveEvent,
   mockSubscriptionTrialingEvent,
   mockSubscriptionCanceledEvent,
@@ -496,5 +497,47 @@ describe("onCheckoutCompleted - one-time product", () => {
     expect(adapter.create).not.toHaveBeenCalled();
     // Should still update user with creemCustomerId
     expect(adapter.update).toHaveBeenCalledWith(expect.objectContaining({ model: "user" }));
+  });
+});
+
+describe("onCheckoutCompleted - organization support", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("stores organizationId on subscription record when present in metadata", async () => {
+    const adapter = createMockAdapter();
+    adapter.findOne.mockResolvedValueOnce({ id: "user_123" }); // User lookup
+    adapter.findOne.mockResolvedValueOnce(null); // No existing subscription
+
+    const ctx = createMockContext({ adapter });
+    await onCheckoutCompleted(ctx, mockOrgCheckoutCompletedEvent, defaultOptions);
+    expect(adapter.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "creem_subscription",
+        data: expect.objectContaining({
+          referenceId: "user_123",
+          organizationId: "org_456",
+        }),
+      }),
+    );
+  });
+
+  it("stores undefined organizationId when not in metadata", async () => {
+    const adapter = createMockAdapter();
+    adapter.findOne.mockResolvedValueOnce({ id: "user_123" }); // User lookup
+    adapter.findOne.mockResolvedValueOnce(null); // No existing subscription
+
+    const ctx = createMockContext({ adapter });
+    await onCheckoutCompleted(ctx, mockCheckoutCompletedEvent, defaultOptions);
+    expect(adapter.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "creem_subscription",
+        data: expect.objectContaining({
+          referenceId: "user_123",
+          organizationId: undefined,
+        }),
+      }),
+    );
   });
 });

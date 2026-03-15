@@ -2,6 +2,7 @@ import { createAuthEndpoint, getSessionFromCtx } from "better-auth/api";
 import { type GenericEndpointContext, logger } from "better-auth";
 import { z } from "zod";
 import type { CreemOptions, SubscriptionRecord } from "./types.js";
+import { resolveSubscriptionOwner, getSubscriptionQueryFilter } from "./subscription-owner.js";
 
 // No input needed - uses session to get user ID
 export const HasAccessGrantedParams = z.object({}).optional();
@@ -38,11 +39,12 @@ const createHasAccessGrantedHandler = (options: CreemOptions) => {
       }
 
       const userId = session.user.id;
+      const owner = resolveSubscriptionOwner(session);
 
-      // Find all subscriptions for this user
+      // Find all subscriptions for this user/organization
       const subscriptions = await ctx.context.adapter.findMany<SubscriptionRecord>({
         model: "creem_subscription",
-        where: [{ field: "referenceId", value: userId }],
+        where: getSubscriptionQueryFilter(owner),
       });
 
       logger.debug(

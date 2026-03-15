@@ -379,6 +379,15 @@ export const mockDbSubscription = {
 };
 
 // ============================================================================
+// Mock DB subscription record (organization-scoped)
+// ============================================================================
+export const mockOrgDbSubscription = {
+  ...mockDbSubscription,
+  id: "db_sub_org_001",
+  organizationId: "org_456",
+};
+
+// ============================================================================
 // Mock User
 // ============================================================================
 export const mockUser = {
@@ -386,4 +395,25 @@ export const mockUser = {
   email: "test@example.com",
   creemCustomerId: "cust_test_123",
   hadTrial: false,
+};
+
+// ============================================================================
+// Mock Sessions
+// ============================================================================
+export const mockOrgSession = {
+  user: { id: "user_123", email: "test@example.com" },
+  activeOrganizationId: "org_456",
+};
+
+// ============================================================================
+// Mock Webhook Events (org-aware)
+// ============================================================================
+export const mockOrgCheckoutCompletedEvent: NormalizedCheckoutCompletedEvent = {
+  eventType: "checkout.completed",
+  id: "evt_chk_org_001",
+  created_at: Date.now() / 1000,
+  object: {
+    ...mockCheckout,
+    metadata: { referenceId: "user_123", organizationId: "org_456" },
+  },
 };

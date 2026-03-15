@@ -4,6 +4,7 @@ import { Creem } from "creem";
 import { z } from "zod";
 import type { CreemOptions } from "./types.js";
 import { resolveSuccessUrl } from "./utils.js";
+import { resolveSubscriptionOwner } from "./subscription-owner.js";
 import type { CreateCheckoutInput, CreateCheckoutResponse } from "./checkout-types.js";
 
 const CustomFieldInputSchema = z.object({
@@ -28,6 +29,7 @@ export const CheckoutParams = z.object({
   customFields: z.array(CustomFieldInputSchema).max(3).optional(),
   customField: z.array(CustomFieldInputSchema).max(3).optional(),
   successUrl: z.string().optional(),
+  organizationId: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -105,6 +107,11 @@ const createCheckoutHandler = (creem: Creem, options: CreemOptions) => {
 
       const customFields = body.customFields ?? body.customField;
 
+      // Resolve organizationId: explicit body param > session activeOrganizationId
+      const organizationId =
+        body.organizationId ??
+        (session?.user?.id ? resolveSubscriptionOwner(session).organizationId : undefined);
+
       const checkout = await creem.checkouts.create({
         productId: body.productId,
         requestId: body.requestId,
@@ -125,6 +132,9 @@ const createCheckoutHandler = (creem: Creem, options: CreemOptions) => {
           ...(body.metadata || {}),
           ...(session?.user?.id && {
             referenceId: session.user.id,
+          }),
+          ...(organizationId && {
+            organizationId,
           }),
           // Trial abuse prevention: signal to Creem that this user has already had a trial
           // Creem will use this to skip the trial period for returning users

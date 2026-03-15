@@ -7,6 +7,8 @@ import {
   defaultOptions,
   optionsNoPersist,
   mockDbSubscription,
+  mockOrgDbSubscription,
+  mockOrgSession,
   mockUser,
 } from "./fixtures.js";
 
@@ -926,5 +928,133 @@ describe("Checkout endpoint - additional paths", () => {
     await handler(ctx);
     // Should still proceed with checkout (fail open)
     expect(creem.checkouts.create).toHaveBeenCalled();
+  });
+});
+
+describe("Checkout endpoint - organization support", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("includes organizationId in metadata when session has active org", async () => {
+    const creem = createMockCreem() as any;
+    const handler = createCheckoutEndpoint(creem, defaultOptions);
+    const ctx = createMockContext({ body: { productId: "prod_1" } });
+    mockGetSession.mockResolvedValue(mockOrgSession);
+    await handler(ctx);
+    expect(creem.checkouts.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          referenceId: "user_123",
+          organizationId: "org_456",
+        }),
+      }),
+    );
+  });
+
+  it("explicit organizationId in body overrides session", async () => {
+    const creem = createMockCreem() as any;
+    const handler = createCheckoutEndpoint(creem, defaultOptions);
+    const ctx = createMockContext({
+      body: { productId: "prod_1", organizationId: "org_override" },
+    });
+    mockGetSession.mockResolvedValue(mockOrgSession);
+    await handler(ctx);
+    expect(creem.checkouts.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          organizationId: "org_override",
+        }),
+      }),
+    );
+  });
+
+  it("does not include organizationId when no active org", async () => {
+    const creem = createMockCreem() as any;
+    const handler = createCheckoutEndpoint(creem, defaultOptions);
+    const ctx = createMockContext({ body: { productId: "prod_1" } });
+    mockGetSession.mockResolvedValue({
+      user: { id: "user_123", email: "test@example.com" },
+    });
+    await handler(ctx);
+    const metadata = creem.checkouts.create.mock.calls[0][0].metadata;
+    expect(metadata.organizationId).toBeUndefined();
+  });
+});
+
+describe("Has access granted - organization support", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("queries by organizationId when org in session", async () => {
+    const adapter = createMockAdapter();
+    adapter.findMany.mockResolvedValue([{ ...mockOrgDbSubscription, status: "active" }]);
+    const handler = createHasAccessGrantedEndpoint(defaultOptions);
+    const ctx = createMockContext({ adapter });
+    mockGetSession.mockResolvedValue(mockOrgSession);
+    await handler(ctx);
+    expect(adapter.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: [{ field: "organizationId", value: "org_456" }],
+      }),
+    );
+    expect(ctx.json).toHaveBeenCalledWith(expect.objectContaining({ hasAccessGranted: true }));
+  });
+
+  it("queries by referenceId when no org in session", async () => {
+    const adapter = createMockAdapter();
+    adapter.findMany.mockResolvedValue([{ ...mockDbSubscription, status: "active" }]);
+    const handler = createHasAccessGrantedEndpoint(defaultOptions);
+    const ctx = createMockContext({ adapter });
+    mockGetSession.mockResolvedValue({ user: { id: "user_123" } });
+    await handler(ctx);
+    expect(adapter.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: [{ field: "referenceId", value: "user_123" }],
+      }),
+    );
+  });
+});
+
+describe("Cancel subscription - organization support", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("queries by organizationId when org in session", async () => {
+    const adapter = createMockAdapter();
+    adapter.findMany.mockResolvedValue([mockOrgDbSubscription]);
+    const creem = createMockCreem() as any;
+    const handler = createCancelSubscriptionEndpoint(creem, defaultOptions);
+    const ctx = createMockContext({ body: {}, adapter });
+    mockGetSession.mockResolvedValue(mockOrgSession);
+    await handler(ctx);
+    expect(adapter.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: [{ field: "organizationId", value: "org_456" }],
+      }),
+    );
+  });
+});
+
+describe("Retrieve subscription - organization support", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("queries by organizationId when org in session", async () => {
+    const adapter = createMockAdapter();
+    adapter.findMany.mockResolvedValue([mockOrgDbSubscription]);
+    const creem = createMockCreem() as any;
+    const handler = createRetrieveSubscriptionEndpoint(creem, defaultOptions);
+    const ctx = createMockContext({ body: {}, adapter });
+    mockGetSession.mockResolvedValue(mockOrgSession);
+    await handler(ctx);
+    expect(adapter.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: [{ field: "organizationId", value: "org_456" }],
+      }),
+    );
   });
 });

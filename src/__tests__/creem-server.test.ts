@@ -287,6 +287,27 @@ describe("checkSubscriptionAccess", () => {
     const result = await checkSubscriptionAccess({ apiKey: "test_key" }, { customerId: "cust_1" });
     expect(result.hasAccess).toBe(false);
   });
+
+  it("queries by organizationId when provided", async () => {
+    const mockDb = {
+      select: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([
+        {
+          status: "active",
+          creemSubscriptionId: "sub_org_1",
+          periodEnd: new Date("2030-01-01").toISOString(),
+        },
+      ]),
+    };
+
+    const result = await checkSubscriptionAccess(
+      { apiKey: "test_key" },
+      { database: mockDb, userId: "user_1", organizationId: "org_456" },
+    );
+    expect(result.hasAccess).toBe(true);
+    expect(mockDb.where).toHaveBeenCalledWith("organizationId", "=", "org_456");
+  });
 });
 
 describe("getActiveSubscriptions", () => {
@@ -335,6 +356,23 @@ describe("getActiveSubscriptions", () => {
   it("returns empty array for API mode (no implementation)", async () => {
     const result = await getActiveSubscriptions({ apiKey: "test_key" }, { customerId: "cust_1" });
     expect(result).toEqual([]);
+  });
+
+  it("queries by organizationId when provided", async () => {
+    const mockDb = {
+      select: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([
+        { status: "active", creemSubscriptionId: "sub_org_1", productId: "prod_1" },
+      ]),
+    };
+
+    const result = await getActiveSubscriptions(
+      { apiKey: "test_key" },
+      { database: mockDb, userId: "user_1", organizationId: "org_456" },
+    );
+    expect(result).toHaveLength(1);
+    expect(mockDb.where).toHaveBeenCalledWith("organizationId", "=", "org_456");
   });
 });
 

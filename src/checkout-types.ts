@@ -139,6 +139,15 @@ export interface CreateCheckoutInput {
   successUrl?: string;
 
   /**
+   * Organization ID to associate with this checkout.
+   * When provided, the subscription will be scoped to the organization.
+   * If not provided, falls back to `session.activeOrganizationId` (from Better Auth's org plugin).
+   *
+   * @example "org_abc123"
+   */
+  organizationId?: string;
+
+  /**
    * Additional metadata to store with the checkout.
    * Automatically includes the authenticated user's ID as `referenceId` if available.
    *

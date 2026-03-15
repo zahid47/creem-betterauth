@@ -198,6 +198,11 @@ export async function createCheckout(
      * @since 1.1.0
      */
     skipTrial?: boolean;
+    /**
+     * Organization ID to associate with this checkout.
+     * When provided, the subscription will be scoped to the organization.
+     */
+    organizationId?: string;
   },
 ): Promise<CreateCheckoutResponse> {
   if (!config.apiKey) {
@@ -218,6 +223,7 @@ export async function createCheckout(
     successUrl: input.successUrl,
     metadata: {
       ...(input.metadata || {}),
+      ...(input.organizationId && { organizationId: input.organizationId }),
       // Trial abuse prevention: signal to Creem that this user has already had a trial
       ...(input.skipTrial && { skipTrial: true }),
     },
@@ -488,8 +494,8 @@ export async function searchTransactions(
 export async function checkSubscriptionAccess(
   config: CreemServerConfig,
   options:
-    | { database: any; userId: string; customerId?: never }
-    | { customerId: string; database?: never; userId?: never },
+    | { database: any; userId: string; organizationId?: string; customerId?: never }
+    | { customerId: string; database?: never; userId?: never; organizationId?: never },
 ): Promise<{
   hasAccess: boolean;
   status?: string;
@@ -503,10 +509,13 @@ export async function checkSubscriptionAccess(
   // `hasAccessGranted` Better Auth endpoint which uses the adapter correctly.
   if (options.database && options.userId) {
     try {
+      const filterField = options.organizationId ? "organizationId" : "referenceId";
+      const filterValue = options.organizationId ?? options.userId;
+
       const subscriptions = await options.database
         .select()
         .from("creem_subscription")
-        .where("referenceId", "=", options.userId);
+        .where(filterField, "=", filterValue);
 
       const activeSubscription = subscriptions.find(
         (sub: any) => sub.status === "active" || sub.status === "trialing" || sub.status === "paid",
@@ -568,8 +577,8 @@ export async function checkSubscriptionAccess(
 export async function getActiveSubscriptions(
   config: CreemServerConfig,
   options:
-    | { database: any; userId: string; customerId?: never }
-    | { customerId: string; database?: never; userId?: never },
+    | { database: any; userId: string; organizationId?: string; customerId?: never }
+    | { customerId: string; database?: never; userId?: never; organizationId?: never },
 ): Promise<
   Array<{
     id: string;
@@ -583,10 +592,13 @@ export async function getActiveSubscriptions(
   // TODO: Same raw query builder caveat as checkSubscriptionAccess above.
   if (options.database && options.userId) {
     try {
+      const filterField = options.organizationId ? "organizationId" : "referenceId";
+      const filterValue = options.organizationId ?? options.userId;
+
       const subscriptions = await options.database
         .select()
         .from("creem_subscription")
-        .where("referenceId", "=", options.userId);
+        .where(filterField, "=", filterValue);
 
       return subscriptions
         .filter(

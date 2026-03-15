@@ -7,6 +7,7 @@ import type {
   CancelSubscriptionInput,
   CancelSubscriptionResponse,
 } from "./cancel-subscription-types.js";
+import { resolveSubscriptionOwner, getSubscriptionQueryFilter } from "./subscription-owner.js";
 
 export const CancelSubscriptionParams = z.object({
   id: z.string().optional(),
@@ -46,13 +47,14 @@ const createCancelSubscriptionHandler = (creem: Creem, options: CreemOptions) =>
       if (shouldPersist) {
         // If database persistence is enabled, fetch the user's subscription from the database
         const userId = session.user.id;
+        const owner = resolveSubscriptionOwner(session);
 
         logger.debug(`[creem] Cancel: looking up subscriptions for user ${userId}`);
 
-        // Find all subscriptions for this user
+        // Find all subscriptions for this user/organization
         const subscriptions = await ctx.context.adapter.findMany<SubscriptionRecord>({
           model: "creem_subscription",
-          where: [{ field: "referenceId", value: userId }],
+          where: getSubscriptionQueryFilter(owner),
         });
 
         if (subscriptions && subscriptions.length > 0) {
