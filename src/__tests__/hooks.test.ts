@@ -238,7 +238,7 @@ describe("updateSubscriptionFromEvent (via subscription hooks)", () => {
     expect(adapter.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         model: "creem_subscription",
-        where: [{ field: "creemCustomerId", value: "cust_test_123" }],
+        where: [{ field: "creemCustomerId", value: "cust_test_123" }, { field: "organizationId", value: null }],
       }),
     );
   });

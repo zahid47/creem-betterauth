@@ -346,9 +346,13 @@ async function updateSubscriptionFromEvent(
     // If not found by creemSubscriptionId, try to find by creemCustomerId and productId
     if (!subscription && customerId) {
       logger.debug(`[creem] Subscription lookup: fallback to customerId=${customerId}`);
+      const organizationId = subscriptionData.metadata?.organizationId as string | undefined;
       const subscriptions = await ctx.context.adapter.findMany<SubscriptionRecord>({
         model: "creem_subscription",
-        where: [{ field: "creemCustomerId", value: customerId }],
+        where: [
+          { field: "creemCustomerId", value: customerId },
+          { field: "organizationId", value: organizationId ?? null },
+        ],
       });
 
       // Find the subscription for this specific product
