@@ -401,8 +401,8 @@ export const mockUser = {
 // Mock Sessions
 // ============================================================================
 export const mockOrgSession = {
+  session: { activeOrganizationId: "org_456" },
   user: { id: "user_123", email: "test@example.com" },
-  activeOrganizationId: "org_456",
 };
 
 // ============================================================================

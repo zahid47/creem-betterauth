@@ -7,8 +7,8 @@ import {
 describe("resolveSubscriptionOwner", () => {
   it("returns org filter when session has activeOrganizationId", () => {
     const owner = resolveSubscriptionOwner({
+      session: { activeOrganizationId: "org_456" },
       user: { id: "user_123" },
-      activeOrganizationId: "org_456",
     });
     expect(owner).toEqual({
       userId: "user_123",
@@ -28,8 +28,8 @@ describe("resolveSubscriptionOwner", () => {
 
   it("treats empty string activeOrganizationId as absent", () => {
     const owner = resolveSubscriptionOwner({
+      session: { activeOrganizationId: "" },
       user: { id: "user_123" },
-      activeOrganizationId: "",
     });
     expect(owner.organizationId).toBeUndefined();
   });
@@ -44,10 +44,13 @@ describe("getSubscriptionQueryFilter", () => {
     expect(filter).toEqual([{ field: "organizationId", value: "org_456" }]);
   });
 
-  it("returns referenceId filter when no org", () => {
+  it("returns referenceId filter with null organizationId when no org", () => {
     const filter = getSubscriptionQueryFilter({
       userId: "user_123",
     });
-    expect(filter).toEqual([{ field: "referenceId", value: "user_123" }]);
+    expect(filter).toEqual([
+      { field: "referenceId", value: "user_123" },
+      { field: "organizationId", value: null },
+    ]);
   });
 });

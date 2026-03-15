@@ -12,16 +12,19 @@ export interface SubscriptionOwner {
 }
 
 /**
- * Resolve subscription ownership from a session object.
+ * Resolve subscription ownership from the result of `getSessionFromCtx`.
  * Duck-types `activeOrganizationId` to avoid a hard dependency on the org plugin.
+ *
+ * `getSessionFromCtx` returns `{ session: { activeOrganizationId, ... }, user: { ... } }`.
+ * We destructure so callers just pass the result directly.
  */
-export function resolveSubscriptionOwner(session: {
+export function resolveSubscriptionOwner({ session, user }: {
+  session?: Record<string, any>;
   user: { id: string };
-  activeOrganizationId?: string;
 }): SubscriptionOwner {
-  const organizationId = session.activeOrganizationId;
+  const organizationId = session?.activeOrganizationId as string | undefined;
   return {
-    userId: session.user.id,
+    userId: user.id,
     organizationId: organizationId || undefined,
   };
 }
@@ -29,11 +32,14 @@ export function resolveSubscriptionOwner(session: {
 /**
  * Build the database query filter for finding subscriptions by owner.
  * - If an org is present, filter by `organizationId`.
- * - Otherwise, filter by `referenceId` (userId).
+ * - Otherwise, filter by `referenceId` (userId) and exclude org-scoped subscriptions.
  */
-export function getSubscriptionQueryFilter(owner: SubscriptionOwner): Array<{ field: string; value: string }> {
+export function getSubscriptionQueryFilter(owner: SubscriptionOwner): Array<{ field: string; value: string | null }> {
   if (owner.organizationId) {
     return [{ field: "organizationId", value: owner.organizationId }];
   }
-  return [{ field: "referenceId", value: owner.userId }];
+  return [
+    { field: "referenceId", value: owner.userId },
+    { field: "organizationId", value: null },
+  ];
 }

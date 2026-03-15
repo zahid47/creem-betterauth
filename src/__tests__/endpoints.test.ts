@@ -1011,7 +1011,7 @@ describe("Has access granted - organization support", () => {
     await handler(ctx);
     expect(adapter.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: [{ field: "referenceId", value: "user_123" }],
+        where: [{ field: "referenceId", value: "user_123" }, { field: "organizationId", value: null }],
       }),
     );
   });
