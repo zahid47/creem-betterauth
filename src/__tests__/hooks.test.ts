@@ -526,7 +526,7 @@ describe("onCheckoutCompleted - organization support", () => {
     );
   });
 
-  it("stores undefined organizationId when not in metadata", async () => {
+  it("stores null organizationId when not in metadata", async () => {
     const adapter = createMockAdapter();
     adapter.findOne.mockResolvedValueOnce({ id: "user_123" }); // User lookup
     adapter.findOne.mockResolvedValueOnce(null); // No existing subscription

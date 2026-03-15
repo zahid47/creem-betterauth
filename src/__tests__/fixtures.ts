@@ -406,6 +406,12 @@ export const mockOrgSession = {
   user: { id: "user_123", email: "test@example.com" },
 };
 
+export const mockOrganizationMember = {
+  id: "member_123",
+  organizationId: "org_456",
+  userId: "user_123",
+};
+
 // ============================================================================
 // Mock Webhook Events (org-aware)
 // ============================================================================

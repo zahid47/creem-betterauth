@@ -43,23 +43,23 @@ export function createCreemClient(config: CreemServerConfig): Creem {
   return new Creem({ apiKey: config.apiKey, serverURL });
 }
 
-function filterSubscriptionsByOwner<
-  T extends {
-    referenceId?: string;
-    organizationId?: string | null;
-    status?: string;
-    creemSubscriptionId?: string;
-    periodEnd?: string | Date;
-    productId?: string;
-  },
->(subscriptions: T[], options: { userId: string; organizationId?: string }): T[] {
+async function querySubscriptionsByOwner(
+  database: any,
+  options: { userId: string; organizationId?: string },
+) {
   if (options.organizationId) {
-    return subscriptions.filter((sub) => sub.organizationId === options.organizationId);
+    return database
+      .select()
+      .from("creem_subscription")
+      .where("organizationId", "=", options.organizationId);
   }
 
-  return subscriptions.filter(
-    (sub) => sub.referenceId === options.userId && sub.organizationId == null,
-  );
+  const subscriptions = await database
+    .select()
+    .from("creem_subscription")
+    .where("referenceId", "=", options.userId);
+
+  return subscriptions.filter((sub: any) => sub.organizationId == null);
 }
 
 /**
@@ -528,14 +528,9 @@ export async function checkSubscriptionAccess(
   // `hasAccessGranted` Better Auth endpoint which uses the adapter correctly.
   if (options.database && options.userId) {
     try {
-      const subscriptions = await options.database
-        .select()
-        .from("creem_subscription")
-        .where("referenceId", "=", options.userId);
+      const subscriptions = await querySubscriptionsByOwner(options.database, options);
 
-      const ownedSubscriptions = filterSubscriptionsByOwner(subscriptions, options);
-
-      const activeSubscription = ownedSubscriptions.find(
+      const activeSubscription = subscriptions.find(
         (sub: any) => sub.status === "active" || sub.status === "trialing" || sub.status === "paid",
       );
 
@@ -610,14 +605,9 @@ export async function getActiveSubscriptions(
   // TODO: Same raw query builder caveat as checkSubscriptionAccess above.
   if (options.database && options.userId) {
     try {
-      const subscriptions = await options.database
-        .select()
-        .from("creem_subscription")
-        .where("referenceId", "=", options.userId);
+      const subscriptions = await querySubscriptionsByOwner(options.database, options);
 
-      const ownedSubscriptions = filterSubscriptionsByOwner(subscriptions, options);
-
-      return ownedSubscriptions
+      return subscriptions
         .filter(
           (sub: any) =>
             sub.status === "active" || sub.status === "trialing" || sub.status === "paid",

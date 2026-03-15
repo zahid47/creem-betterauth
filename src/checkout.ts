@@ -73,6 +73,50 @@ async function checkUserHadTrial(
   }
 }
 
+async function resolveCheckoutOrganizationId(
+  ctx: GenericEndpointContext,
+  bodyOrganizationId: string | undefined,
+  session: Awaited<ReturnType<typeof getSessionFromCtx>>,
+): Promise<
+  { organizationId: string | undefined } | { error: { body: { error: string }; status: 401 | 403 } }
+> {
+  const sessionOrganizationId = session?.user?.id
+    ? resolveSubscriptionOwner(session).organizationId
+    : undefined;
+
+  if (!bodyOrganizationId) {
+    return { organizationId: sessionOrganizationId };
+  }
+
+  if (!session?.user?.id) {
+    return {
+      error: {
+        body: { error: "User must be logged in to use organization checkout" },
+        status: 401,
+      },
+    };
+  }
+
+  const membership = await ctx.context.adapter.findOne({
+    model: "member",
+    where: [
+      { field: "organizationId", value: bodyOrganizationId },
+      { field: "userId", value: session.user.id },
+    ],
+  });
+
+  if (!membership) {
+    return {
+      error: {
+        body: { error: "You do not have access to this organization" },
+        status: 403,
+      },
+    };
+  }
+
+  return { organizationId: bodyOrganizationId };
+}
+
 const createCheckoutHandler = (creem: Creem, options: CreemOptions) => {
   return async (ctx: GenericEndpointContext) => {
     const body = ctx.body as CheckoutParams;
@@ -107,10 +151,19 @@ const createCheckoutHandler = (creem: Creem, options: CreemOptions) => {
 
       const customFields = body.customFields ?? body.customField;
 
-      // Resolve organizationId: explicit body param > session activeOrganizationId
-      const organizationId =
-        body.organizationId ??
-        (session?.user?.id ? resolveSubscriptionOwner(session).organizationId : undefined);
+      const organizationResolution = await resolveCheckoutOrganizationId(
+        ctx,
+        body.organizationId,
+        session,
+      );
+
+      if ("error" in organizationResolution) {
+        return ctx.json(organizationResolution.error.body, {
+          status: organizationResolution.error.status,
+        });
+      }
+
+      const organizationId = organizationResolution.organizationId;
 
       const checkout = await creem.checkouts.create({
         productId: body.productId,

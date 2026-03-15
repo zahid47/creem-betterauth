@@ -294,23 +294,26 @@ describe("checkSubscriptionAccess", () => {
     const mockDb = {
       select: vi.fn().mockReturnThis(),
       from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockResolvedValue([
-        {
-          referenceId: "user_1",
-          organizationId: "org_456",
-          status: "active",
-          creemSubscriptionId: "sub_org_1",
-          periodEnd: new Date("2030-01-01").toISOString(),
-        },
-      ]),
+      where: vi
+        .fn()
+        .mockReturnThis()
+        .mockResolvedValue([
+          {
+            referenceId: "user_checkout_owner",
+            organizationId: "org_456",
+            status: "active",
+            creemSubscriptionId: "sub_org_1",
+            periodEnd: new Date("2030-01-01").toISOString(),
+          },
+        ]),
     };
 
     const result = await checkSubscriptionAccess(
       { apiKey: "test_key" },
-      { database: mockDb, userId: "user_1", organizationId: "org_456" },
+      { database: mockDb, userId: "different_org_member", organizationId: "org_456" },
     );
     expect(result.hasAccess).toBe(true);
-    expect(mockDb.where).toHaveBeenCalledWith("referenceId", "=", "user_1");
+    expect(mockDb.where).toHaveBeenNthCalledWith(1, "organizationId", "=", "org_456");
   });
 
   it("does not treat org subscriptions as personal without organizationId", async () => {
@@ -397,23 +400,26 @@ describe("getActiveSubscriptions", () => {
     const mockDb = {
       select: vi.fn().mockReturnThis(),
       from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockResolvedValue([
-        {
-          referenceId: "user_1",
-          organizationId: "org_456",
-          status: "active",
-          creemSubscriptionId: "sub_org_1",
-          productId: "prod_1",
-        },
-      ]),
+      where: vi
+        .fn()
+        .mockReturnThis()
+        .mockResolvedValue([
+          {
+            referenceId: "user_checkout_owner",
+            organizationId: "org_456",
+            status: "active",
+            creemSubscriptionId: "sub_org_1",
+            productId: "prod_1",
+          },
+        ]),
     };
 
     const result = await getActiveSubscriptions(
       { apiKey: "test_key" },
-      { database: mockDb, userId: "user_1", organizationId: "org_456" },
+      { database: mockDb, userId: "different_org_member", organizationId: "org_456" },
     );
     expect(result).toHaveLength(1);
-    expect(mockDb.where).toHaveBeenCalledWith("referenceId", "=", "user_1");
+    expect(mockDb.where).toHaveBeenNthCalledWith(1, "organizationId", "=", "org_456");
   });
 
   it("does not return org subscriptions for personal lookups", async () => {

@@ -7,6 +7,7 @@ import {
   defaultOptions,
   optionsNoPersist,
   mockDbSubscription,
+  mockOrganizationMember,
   mockOrgDbSubscription,
   mockOrgSession,
   mockUser,
@@ -952,21 +953,49 @@ describe("Checkout endpoint - organization support", () => {
     );
   });
 
-  it("explicit organizationId in body overrides session", async () => {
+  it("allows explicit organizationId when user belongs to that org", async () => {
     const creem = createMockCreem() as any;
+    const adapter = createMockAdapter();
+    adapter.findOne.mockResolvedValue(mockOrganizationMember);
     const handler = createCheckoutEndpoint(creem, defaultOptions);
     const ctx = createMockContext({
       body: { productId: "prod_1", organizationId: "org_override" },
+      adapter,
     });
     mockGetSession.mockResolvedValue(mockOrgSession);
     await handler(ctx);
-    expect(creem.checkouts.create).toHaveBeenCalledWith(
+    expect(adapter.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadata: expect.objectContaining({
-          organizationId: "org_override",
-        }),
+        model: "member",
+        where: [
+          { field: "organizationId", value: "org_override" },
+          { field: "userId", value: "user_123" },
+        ],
       }),
     );
+    expect(creem.checkouts.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ organizationId: "org_override" }),
+      }),
+    );
+  });
+
+  it("rejects explicit organizationId when user does not belong to that org", async () => {
+    const creem = createMockCreem() as any;
+    const adapter = createMockAdapter();
+    adapter.findOne.mockResolvedValue(null);
+    const handler = createCheckoutEndpoint(creem, defaultOptions);
+    const ctx = createMockContext({
+      body: { productId: "prod_1", organizationId: "org_override" },
+      adapter,
+    });
+    mockGetSession.mockResolvedValue(mockOrgSession);
+    await handler(ctx);
+    expect(ctx.json).toHaveBeenCalledWith(
+      { error: "You do not have access to this organization" },
+      { status: 403 },
+    );
+    expect(creem.checkouts.create).not.toHaveBeenCalled();
   });
 
   it("does not include organizationId when no active org", async () => {
